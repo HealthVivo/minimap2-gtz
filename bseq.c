@@ -54,7 +54,7 @@ mm_bseq_file_t *mm_bseq_open(const char *fn)
 	return fp;
 }
 
-mm_bseq_file_t2 *mm_bseq_open(const char* fn)
+mm_bseq_file_t2 *mm_bseq_open2(const char* fn)
 {
     mm_bseq_file_t2 *fp2;
     fp2 = (mm_bseq_file_t2*) calloc(1,sizeof(mm_bseq_file_t2));
