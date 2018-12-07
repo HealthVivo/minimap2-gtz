@@ -59,7 +59,7 @@ mm_bseq_file_t2 *mm_bseq_open2(const char* fn)
     mm_bseq_file_t2 *fp2;
     fp2 = (mm_bseq_file_t2*) calloc(1,sizeof(mm_bseq_file_t2));
     fp2->gtz_fp = (void*)gtz_open(fn,"",GTZ_CONCURRENCY);
-
+    fp2->ks = kseq_init(fp2->gtz_fp);
     return fp2;
 }
 
@@ -68,6 +68,13 @@ void mm_bseq_close(mm_bseq_file_t *fp)
 	kseq_destroy(fp->ks);
 	gzclose(fp->fp);
 	free(fp);
+}
+
+void mm_bseq_close2(mm_bseq_file_t2 *fp2)
+{
+	kseq_destroy(fp2->ks);
+	gtz_close(fp2->gtz_fp);
+	free(fp2);
 }
 
 static inline char *kstrdup(const kstring_t *s)
