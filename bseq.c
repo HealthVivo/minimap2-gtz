@@ -33,49 +33,57 @@ struct mm_bseq_file_s {
 	gzFile fp;
 	kseq_t *ks;
 	mm_bseq1_t s;
+
+	int is_gtz;
+    void *gtz_fp;
 };
 
-//add by fengbl for support gtz
-struct mm_bseq_file_s2 {
-    void *gtz_fp;
-    kseq_t *ks;
-    mm_bseq1_t s;
-};
 
 mm_bseq_file_t *mm_bseq_open(const char *fn)
 {
+	int fn_len = strlen(fn);
+	char fn_suffix[4] = {};
+	int n = 4;
+	if(4 > fn_len) n = fn_len;
+	char *fn_temp = fn;
+	char *p = fn_suffix;
+	fn_temp += (fn_len -n);
+	while(*(p++) = *(fn_temp++));
+
 	mm_bseq_file_t *fp;
-	gzFile f;
-	f = fn && strcmp(fn, "-")? gzopen(fn, "r") : gzdopen(0, "r");
-	if (f == 0) return 0;
 	fp = (mm_bseq_file_t*)calloc(1, sizeof(mm_bseq_file_t));
-	fp->fp = f;
-	fp->ks = kseq_init(fp->fp);
+
+	if(!strcmp(fn_suffix,".gtz"))
+	{
+	    fp->gtz_fp = (void*)gtz_open(fn,"",GTZ_CONCURRENCY);
+	    fp->ks = kseq_init(fp->gtz_fp);
+	    fp->is_gtz = 1;
+	} else {
+		gzFile f;
+		f = fn && strcmp(fn, "-")? gzopen(fn, "r") : gzdopen(0, "r");
+		if (f == 0) return 0;
+		fp->fp = f;
+		fp->ks = kseq_init(fp->fp);
+		fp->is_gtz = 0;
+		fp->gtz_fp = NULL;
+	}
+
 	return fp;
 }
 
-mm_bseq_file_t2 *mm_bseq_open2(const char* fn)
-{
-    mm_bseq_file_t2 *fp2;
-    fp2 = (mm_bseq_file_t2*) calloc(1,sizeof(mm_bseq_file_t2));
-    fp2->gtz_fp = (void*)gtz_open(fn,"",GTZ_CONCURRENCY);
-    fp2->ks = kseq_init(fp2->gtz_fp);
-    return fp2;
-}
 
 void mm_bseq_close(mm_bseq_file_t *fp)
 {
 	kseq_destroy(fp->ks);
-	gzclose(fp->fp);
+	if(1 == fp->is_gtz)
+	{
+		gtz_close(fp->gtz_fp);
+	} else {
+		gzclose(fp->fp);
+	}
 	free(fp);
 }
 
-void mm_bseq_close2(mm_bseq_file_t2 *fp2)
-{
-	kseq_destroy(fp2->ks);
-	gtz_close(fp2->gtz_fp);
-	free(fp2);
-}
 
 static inline char *kstrdup(const kstring_t *s)
 {
