@@ -57,12 +57,10 @@ mm_bseq_file_t *mm_bseq_open(const char *fn)
 
 	if(!strcmp(fn_suffix,".gtz"))
 	{
-		printf("##################111111#############%s\n",fn);
 	    fp->gtz_fp = gtz_open(fn,"",GTZ_CONCURRENCY);
 	    fp->ks = kseq_init_gtz(fp->gtz_fp);
 	    fp->is_gtz = 1;
 	} else {
-		printf("##################222222#############%s\n",fn);
 		gzFile f;
 		f = fn && strcmp(fn, "-")? gzopen(fn, "r") : gzdopen(0, "r");
 		if (f == 0) return 0;
@@ -126,7 +124,6 @@ mm_bseq1_t *mm_bseq_read3(mm_bseq_file_t *fp, int chunk_size, int with_qual, int
 		memset(&fp->s, 0, sizeof(mm_bseq1_t));
 	}
 
-	printf("~~~~~~~~~~~~~~~~~~~mm_bseq_read3~~~~~~~~~~~~~~~step2~~~~~~~~~~~~~~\n");
 	if(0 == fp->is_gtz )
 	{
 		while ((ret = kseq_read(ks)) >= 0) {
@@ -195,7 +192,6 @@ mm_bseq1_t *mm_bseq_read_frag2(int n_fp, mm_bseq_file_t **fp, int chunk_size, in
 	kvec_t(mm_bseq1_t) a = {0,0,0};
 	*n_ = 0;
 	if (n_fp < 1) return 0;
-	printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~mm_bseq_read_frag2~~~~~~~~~~~~~~~~~~step1~~~~~~~~~~~~~~~~~~~~~~~\n");
 	while (1) {
 		int n_read = 0;
 		for (i = 0; i < n_fp; ++i)

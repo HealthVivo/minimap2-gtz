@@ -93,7 +93,6 @@
 		if (ks->begin >= ks->end) { \
 			ks->begin = 0; \
 			ks->end = __read(ks->f, ks->buf, ks->bufsize); \
-			printf("*****************gz************%s\n",ks->buf);\
 			if (ks->end < ks->bufsize) ks->is_eof = 1; \
 			if (ks->end == 0) return -1; \
 		} \
@@ -109,7 +108,6 @@
 		if (ks->begin >= ks->end) { \
 			ks->begin = 0; \
 			ks->end = __read(ks->f, ks->buf, ks->bufsize); \
-			printf("*****************gtz************%s\n",ks->buf);\
 			if (ks->end < ks->bufsize) ks->is_eof = 1; \
 			if (ks->end == 0) return -1; \
 		} \
@@ -141,7 +139,6 @@ typedef struct __kstring_t {
 			if (ks->begin >= ks->end) { \
 				if (!ks->is_eof) { \
 					ks->begin = 0; \
-					printf("~~~~~~~~~~~gz~~~~~~~~%s\n",ks->buf);\
 					ks->end = __read(ks->f, ks->buf, ks->bufsize); \
 					if (ks->end < ks->bufsize) ks->is_eof = 1; \
 					if (ks->end == 0) break; \
@@ -193,7 +190,6 @@ typedef struct __kstring_t {
 			if (ks->begin >= ks->end) { \
 				if (!ks->is_eof) { \
 					ks->begin = 0; \
-					printf("~~~~~~~~~~~gtz~~~~~~~~%s\n",ks->buf);\
 					ks->end = __read(ks->f, ks->buf, ks->bufsize); \
 					if (ks->end < ks->bufsize) ks->is_eof = 1; \
 					if (ks->end == 0) break; \
