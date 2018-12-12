@@ -6,7 +6,9 @@
 #include "bseq.h"
 #include "kvec.h"
 #include "kseq.h"
-KSEQ_INIT2(, gzFile, gzread)
+KSEQ_INIT2(, gzFile, gzread);
+
+KSEQ_INIT2_GTZ(,gtzFile,gtz_read);
 
 unsigned char seq_comp_table[256] = {
 	  0,   1,	2,	 3,	  4,   5,	6,	 7,	  8,   9,  10,	11,	 12,  13,  14,	15,
@@ -35,7 +37,7 @@ struct mm_bseq_file_s {
 	mm_bseq1_t s;
 
 	int is_gtz;
-    void *gtz_fp;
+    gtzFile gtz_fp;
 };
 
 
@@ -55,10 +57,12 @@ mm_bseq_file_t *mm_bseq_open(const char *fn)
 
 	if(!strcmp(fn_suffix,".gtz"))
 	{
-	    fp->gtz_fp = (void*)gtz_open(fn,"",GTZ_CONCURRENCY);
-	    fp->ks = kseq_init(fp->gtz_fp);
+		printf("##################111111#############%s\n",fn);
+	    fp->gtz_fp = gtz_open(fn,"",GTZ_CONCURRENCY);
+	    fp->ks = kseq_init_gtz(fp->gtz_fp);
 	    fp->is_gtz = 1;
 	} else {
+		printf("##################222222#############%s\n",fn);
 		gzFile f;
 		f = fn && strcmp(fn, "-")? gzopen(fn, "r") : gzdopen(0, "r");
 		if (f == 0) return 0;
@@ -121,26 +125,53 @@ mm_bseq1_t *mm_bseq_read3(mm_bseq_file_t *fp, int chunk_size, int with_qual, int
 		size = fp->s.l_seq;
 		memset(&fp->s, 0, sizeof(mm_bseq1_t));
 	}
-	while ((ret = kseq_read(ks)) >= 0) {
-		mm_bseq1_t *s;
-		assert(ks->seq.l <= INT32_MAX);
-		if (a.m == 0) kv_resize(mm_bseq1_t, 0, a, 256);
-		kv_pushp(mm_bseq1_t, 0, a, &s);
-		kseq2bseq(ks, s, with_qual, with_comment);
-		size += s->l_seq;
-		if (size >= chunk_size) {
-			if (frag_mode && a.a[a.n-1].l_seq < CHECK_PAIR_THRES) {
-				while (kseq_read(ks) >= 0) {
-					kseq2bseq(ks, &fp->s, with_qual, with_comment);
-					if (mm_qname_same(fp->s.name, a.a[a.n-1].name)) {
-						kv_push(mm_bseq1_t, 0, a, fp->s);
-						memset(&fp->s, 0, sizeof(mm_bseq1_t));
-					} else break;
+
+	printf("~~~~~~~~~~~~~~~~~~~mm_bseq_read3~~~~~~~~~~~~~~~step2~~~~~~~~~~~~~~\n");
+	if(0 == fp->is_gtz )
+	{
+		while ((ret = kseq_read(ks)) >= 0) {
+				mm_bseq1_t *s;
+				assert(ks->seq.l <= INT32_MAX);
+				if (a.m == 0) kv_resize(mm_bseq1_t, 0, a, 256);
+				kv_pushp(mm_bseq1_t, 0, a, &s);
+				kseq2bseq(ks, s, with_qual, with_comment);
+				size += s->l_seq;
+				if (size >= chunk_size) {
+					if (frag_mode && a.a[a.n-1].l_seq < CHECK_PAIR_THRES) {
+						while (kseq_read(ks) >= 0) {
+							kseq2bseq(ks, &fp->s, with_qual, with_comment);
+							if (mm_qname_same(fp->s.name, a.a[a.n-1].name)) {
+								kv_push(mm_bseq1_t, 0, a, fp->s);
+								memset(&fp->s, 0, sizeof(mm_bseq1_t));
+							} else break;
+						}
+					}
+					break;
 				}
 			}
-			break;
-		}
+	} else {
+		while ((ret = kseq_read_gtz(ks)) >= 0) {
+						mm_bseq1_t *s;
+						assert(ks->seq.l <= INT32_MAX);
+						if (a.m == 0) kv_resize(mm_bseq1_t, 0, a, 256);
+						kv_pushp(mm_bseq1_t, 0, a, &s);
+						kseq2bseq(ks, s, with_qual, with_comment);
+						size += s->l_seq;
+						if (size >= chunk_size) {
+							if (frag_mode && a.a[a.n-1].l_seq < CHECK_PAIR_THRES) {
+								while (kseq_read_gtz(ks) >= 0) {
+									kseq2bseq(ks, &fp->s, with_qual, with_comment);
+									if (mm_qname_same(fp->s.name, a.a[a.n-1].name)) {
+										kv_push(mm_bseq1_t, 0, a, fp->s);
+										memset(&fp->s, 0, sizeof(mm_bseq1_t));
+									} else break;
+								}
+							}
+							break;
+						}
+					}
 	}
+
 	if (ret < -1)
 		fprintf(stderr, "[WARNING]\033[1;31m wrong FASTA/FASTQ record. Continue anyway.\033[0m\n");
 	*n_ = a.n;
@@ -164,6 +195,7 @@ mm_bseq1_t *mm_bseq_read_frag2(int n_fp, mm_bseq_file_t **fp, int chunk_size, in
 	kvec_t(mm_bseq1_t) a = {0,0,0};
 	*n_ = 0;
 	if (n_fp < 1) return 0;
+	printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~mm_bseq_read_frag2~~~~~~~~~~~~~~~~~~step1~~~~~~~~~~~~~~~~~~~~~~~\n");
 	while (1) {
 		int n_read = 0;
 		for (i = 0; i < n_fp; ++i)
