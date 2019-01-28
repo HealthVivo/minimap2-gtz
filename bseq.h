@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#define GTZ_CONCURRENCY (1)
+#define GTZ_CONCURRENCY (0)
 
 struct mm_bseq_file_s;
 typedef struct mm_bseq_file_s mm_bseq_file_t;
