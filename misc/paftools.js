@@ -1,6 +1,6 @@
 #!/usr/bin/env k8
 
-var paftools_version = '2.14-r893-dirty';
+var paftools_version = '2.15-r907-dirty';
 
 /*****************************
  ***** Library functions *****
@@ -801,11 +801,12 @@ function paf_asmstat(args)
 
 function paf_asmgene(args)
 {
-	var c, opt = { min_cov:0.99, min_iden:0.99 }, print_err = false;
-	while ((c = getopt(args, "i:c:e")) != null)
+	var c, opt = { min_cov:0.99, min_iden:0.99 }, print_err = false, auto_only = false;
+	while ((c = getopt(args, "i:c:ea")) != null)
 		if (c == 'i') opt.min_iden = parseFloat(getopt.arg);
 		else if (c == 'c') opt.min_cov = parseFloat(getopt.arg);
 		else if (c == 'e') print_err = true;
+		else if (c == 'a') auto_only = true;
 
 	var n_fn = args.length - getopt.ind;
 	if (n_fn < 2) {
@@ -813,6 +814,7 @@ function paf_asmgene(args)
 		print("Options:");
 		print("  -i FLOAT     min identity [" + opt.min_iden + "]");
 		print("  -c FLOAT     min coverage [" + opt.min_cov + "]");
+		print("  -a           only evaluate genes mapped to the autosomes");
 		print("  -e           print fragmented/missing genes");
 		exit(1);
 	}
@@ -895,6 +897,7 @@ function paf_asmgene(args)
 	for (var g in gene) {
 		if (gene[g][0] == null || gene[g][0][0] != 1) continue;
 		if (gene_nr[g] == null) continue;
+		if (auto_only && /^(chr)?[XY]$/.test(refpos[g][2])) continue;
 		for (var i = 0; i < n_fn; ++i) {
 			if (gene[g][i] == null) {
 				rst[4][i]++;
@@ -1620,13 +1623,14 @@ function paf_sam2paf(args)
 		var tlen = ctg_len[t[2]];
 		if (tlen == null) throw Error("at line " + lineno + ": can't find the length of contig " + t[2]);
 		// find tags
-		var nn = 0, NM = null, MD = null, md_list = [];
+		var nn = 0, NM = null, MD = null, cs_str = null, md_list = [];
 		while ((m = re_tag.exec(line)) != null) {
 			if (m[1] == "NM:i") NM = parseInt(m[2]);
 			else if (m[1] == "nn:i") nn = parseInt(m[2]);
 			else if (m[1] == "MD:Z") MD = m[2];
+			else if (m[1] == "cs:Z") cs_str = m[2];
 		}
-		if (t[9] == '*') MD = null;
+		if (t[9] == '*') MD = cs_str = null;
 		// infer various lengths from CIGAR
 		var clip = [0, 0], soft_clip = 0, I = [0, 0], D = [0, 0], M = 0, N = 0, mm = 0, have_M = false, have_ext = false, cigar = [];
 		while ((m = re.exec(t[5])) != null) {
@@ -1662,7 +1666,7 @@ function paf_sam2paf(args)
 		}
 		// parse MD
 		var cs = [];
-		if (MD != null) {
+		if (MD != null && cs_str == null) {
 			var k = 0, cx = 0, cy = 0, mx = 0, my = 0;
 			while ((m = re_MD.exec(MD)) != null) {
 				if (m[2] != null) { // deletion from the reference
@@ -1728,7 +1732,8 @@ function paf_sam2paf(args)
 		var tags = ["tp:A:" + type];
 		if (NM != null) tags.push("mm:i:"+mm);
 		tags.push("gn:i:"+(I[1]+D[1]), "go:i:"+(I[0]+D[0]), "cg:Z:" + t[5].replace(/\d+[SH]/g, ''));
-		if (cs.length > 0) tags.push("cs:Z:" + cs.join(""));
+		if (cs_str != null) tags.push("cs:Z:" + cs_str);
+		else if (cs.length > 0) tags.push("cs:Z:" + cs.join(""));
 		// print out
 		var a = [qname, qlen, qs, qe, flag&16? '-' : '+', t[2], tlen, ts, te, mlen, blen, t[4]];
 		print(a.join("\t"), tags.join("\t"));
